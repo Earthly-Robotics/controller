@@ -15,11 +15,11 @@
 U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE); // oled scherm definitie
 
 /* WiFi network name and password */
-const char * ssid = "Earthly_Robotics_AP";// dit is het naam van het gebruikte wifi netwerk
-const char * pwd = "brobotica";//dit is het wachtwoord van het gebruikte wifi netwerk
+const char * ssid = "IDP-Robotica";// dit is het naam van het gebruikte wifi netwerk 
+const char * pwd = "oboRacit";//dit is het wachtwoord van het gebruikte wifi netwerk 
 
 
-const char * udpAddress = "192.168.50.1"; // het ip adres waar udp berichten naar toe wordt gestuurd
+const char * udpAddress = "141.252.29.102"; // het ip adres waar udp berichten naar toe wordt gestuurd 192.168.50.1
 const int udpPort = 8080; // de poort waar udp berichten naar gestuurd worden.
 const int buttonPin1 = 19;// knop 1 Profiel knop
 const int buttonPin2 = 5;//knop 2 Nood knop
@@ -57,6 +57,9 @@ unsigned long lastDebounceTime3 = 0;  // the last time the output pin was toggle
 
 //create UDP instance
 WiFiUDP udp;
+
+
+
 
 void setup(){
   Serial.begin(115200);               // start de seriele communicatie
