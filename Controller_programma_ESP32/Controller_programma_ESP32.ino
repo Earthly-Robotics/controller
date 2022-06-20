@@ -27,14 +27,13 @@ const int actionPin = 17;//knop 3 Actie knop
 int L_JoyStick_X = 35; // Analog Pin  X
 int L_JoyStick_Y = 34; // // Analog Pin  Y
 int L_JoyStick_button = 32; // IO Pin 
-int R_JoyStick_X = 14; // Analog Pin  X
-int R_JoyStick_Y = 27; // // Analog Pin  Y
-int R_JoyStick_button = 12; // IO Pin 
+int R_JoyStick_X = 39; // Analog Pin  X
+int R_JoyStick_Y = 36; // // Analog Pin  Y
+int R_JoyStick_button = 33; // IO Pin 
 int profile=0;//integer voor profile switch
 int limiter = 1;
-int i;
 int j=0;
-int LJ_x, LJ_y,RJ_x,RJ_y, button;
+int LJ_x, LJ_y, RJ_x, RJ_y, Rx, Ry, button;
 
 
 const int DEBOUNCE_DELAY = 10;   // the debounce time; increase if the output flickers
@@ -46,7 +45,7 @@ int stateProfile;                // the current reading from the input pin
 
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 
-const int DEBOUNCE_DELAY3 = 40;   // the debounce time; increase if the output flickers
+const int DEBOUNCE_DELAY3 = 10;   // the debounce time; increase if the output flickers
 
 // Variables will change:
 int lastSteadyState3 = LOW;       // the previous steady state from the input pin
@@ -59,33 +58,55 @@ unsigned long lastDebounceTime3 = 0;  // the last time the output pin was toggle
 //create UDP instance
 WiFiUDP udp;
 
+void connect(){
+  //Connect to the WiFi network
+  Serial.println("");// spacer
+  Serial.print("Connecting");
+  WiFi.begin(ssid, pwd);//maak de wifi verbinding.
+  
+  while (WiFi.status() != WL_CONNECTED) {// hier wordt gekeken of er verbinding is met het wifi en dat i nog kleiner is dan 10
+    delay(100);
+    Serial.print(".");
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+  Serial.println("");
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  
+  }
+
+}
+
+
 void setup(){
-  Serial.begin(115200);               // start de seriele communicatie
-  pinMode(profilePin, INPUT_PULLDOWN);
-  pinMode(emergencyPin, INPUT_PULLDOWN);
-  pinMode(actionPin, INPUT_PULLDOWN);
+  Serial.begin(115200);
+  pinMode(R_JoyStick_X, INPUT);
+  pinMode(R_JoyStick_Y, INPUT);
   pinMode(L_JoyStick_X, INPUT);
   pinMode(L_JoyStick_Y, INPUT);
   pinMode(L_JoyStick_button, INPUT_PULLUP);
-  pinMode(R_JoyStick_X, INPUT);
-  pinMode(R_JoyStick_Y, INPUT);
   pinMode(R_JoyStick_button, INPUT_PULLUP);
-  u8g2.begin();//begin voor OLED scherm
- 
+  pinMode(profilePin, INPUT_PULLDOWN);
+  pinMode(emergencyPin, INPUT_PULLDOWN);
+  pinMode(actionPin, INPUT_PULLDOWN);
+  u8g2.begin();//begin voor OLED 
+  
 }
 
 void loop(){
 
   while (WiFi.status() != WL_CONNECTED){
-    
+      
        u8g2.firstPage();  
     do {
       u8g2_prepare();
       Startup();
       }
       while( u8g2.nextPage() );
-    
-   connect();
+      connect();// start de seriele communicatie
   }
   
   LJ_x = analogRead(L_JoyStick_X); //  X
@@ -93,12 +114,24 @@ void loop(){
   LJ_x = map(LJ_x, 0, 4095, -2047, 2047);
   LJ_y = map(LJ_y, 0, 4095, -2047, 2047);
 
-  RJ_x = analogRead(R_JoyStick_X); //  X
-  RJ_y = analogRead(R_JoyStick_Y); //  Y
-  RJ_x = map(RJ_x, 0, 4095, -2047, 2047);//1023
-  RJ_y = map(RJ_y, 0, 4095, -2047, 2047);
+  RJ_x = analogRead(R_JoyStick_X);
+  RJ_y = analogRead(R_JoyStick_Y);
+  Rx = map(RJ_x, 0, 4095, -2047, 2047);//1023
+  Ry = map(RJ_y, 0, 4095, -2047, 2047);
+  Serial.print("LX: ");
+  Serial.print(LJ_x);
+  Serial.print(" | LY: ");
+  Serial.print(LJ_y);
+  Serial.print(" | LButton: ");
+  Serial.println("");
+  Serial.print("RX: ");
+  Serial.print(Rx);
+  Serial.print(" | RY: ");
+  Serial.print(Ry);
+  Serial.print(" | RButton: ");
+  Serial.println("");
   String LJ= "{\"MT\":\"LJ\", \"p\" :" + String(profile) + ", \"x\":" + String(LJ_x) +  ", \"y\" :" + String(LJ_y) + "}";//"{\"MessageType\":\"LeftJoystick\", \"profile\" : profile, \"x-as\":" + String(x) +  ", \"y-as\" :" + String(y) + "}";
-  String RJ= "{\"MT\":\"RJ\", \"p\" :" + String(profile) + ", \"x\":" + String(RJ_x) +  ", \"y\" :" + String(RJ_y) + "}";//"{\"MessageType\":\"RightJoystick\", \"profile\" : profile, \"x-as\":" + String(x) +  ", \"y-as\" :" + String(y) + "}";
+  String RJ= "{\"MT\":\"RJ\", \"p\" :" + String(profile) + ", \"x\":" + String(Rx) +  ", \"y\" :" + String(Ry) + "}";//"{\"MessageType\":\"RightJoystick\", \"profile\" : profile, \"x-as\":" + String(x) +  ", \"y-as\" :" + String(y) + "}";
   sendMessage(LJ);
   sendMessage(RJ);
 
@@ -118,17 +151,17 @@ void loop(){
     // save the the last flickerable state
     lastFlickerableState = stateProfile;
   }
-  if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
+  if ((millis() - lastDebounceTime) < DEBOUNCE_DELAY) {
     // whatever the reading is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:
 
     // if the button state has changed:
     if (lastSteadyState == HIGH && stateProfile == LOW){
-      Serial.println("The button is released");
+      Serial.println("The Profilebutton is released");
       profile++;
     }
     else if (lastSteadyState == LOW && stateProfile == HIGH)
-      Serial.println("The button is pressed");
+      Serial.println("The Profilebutton is pressed");
 
     // save the the last steady state
     lastSteadyState = stateProfile;
@@ -138,6 +171,8 @@ void loop(){
     if (profile>1){
       profile=0;
     }
+
+    Serial.println("Start sending Profile message");
     String profile = "{\"MT\":\"PB\", \"p\" :" + String(profile) + "}";           //"{\"MessageType\":\"ProfileButton\", \"Profile\" : profile}";
     sendMessage(profile);
     
@@ -155,7 +190,7 @@ void loop(){
     // save the the last flickerable state
     lastFlickerableState3 = stateAction;
   }
-  if ((millis() - lastDebounceTime3) > DEBOUNCE_DELAY) {
+  if ((millis() - lastDebounceTime3) < DEBOUNCE_DELAY3) {
     // whatever the reading is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:
 
@@ -174,13 +209,14 @@ void loop(){
     
     if (profile == 0){
       if (limiter > 3){
-        limiter = 0;
+        limiter = 1;
       }
       String action = "{\"MT\":\"AB\", \"l\" :" + String(limiter) + "}";                 //"{\"MessageType\":\"ActionButton\" \ "limit\" : limiter}";
       sendMessage(action);
     }
     else{
-      
+      String action = "{\"MT\":\"AB\"}";                 //"{\"MessageType\":\"ActionButton\" \ "limit\" : limiter}";
+      sendMessage(action);
     }
     
   }
@@ -195,8 +231,6 @@ void loop(){
  
 }
 
-
-
 void sendMessage(String message){
   DynamicJsonDocument doc(100);
   deserializeJson(doc, message);
@@ -206,28 +240,6 @@ void sendMessage(String message){
   doc.clear();
 }
 
-void connect(){
-  //Connect to the WiFi network
-  Serial.println("");// spacer
-  Serial.print("Connecting");
-  WiFi.begin(ssid, pwd);//maak de wifi verbinding.
-  i=0;
-  
-  while ((WiFi.status() != WL_CONNECTED) && (i<20)) {// hier wordt gekeken of er verbinding is met het wifi en dat i nog kleiner is dan 10
-    delay(500);
-    Serial.print(".");
-    i++;
-  }
-  
-  if (WiFi.status() == WL_CONNECTED) {
-  Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  }
-
-}
 
 void u8g2_prepare(void) {   //benodigheden voor het scherm.
   u8g2.setFont(u8g2_font_6x10_tf);
@@ -241,9 +253,12 @@ void showonoled() {
   u8g2.clearBuffer();
   u8g2_prepare();
   
-  u8g2.drawStr(0,36, "Profile:");
-  u8g2.setCursor(70, 36);//selecteer de positie
+  u8g2.drawStr(0,20, "Profile:");
+  u8g2.drawStr(0,40, "Snelheid:");
+  u8g2.setCursor(60, 20);//selecteer de positie
   u8g2.print(profile);//display de waarde van het profile
+  u8g2.setCursor(60, 40);//selecteer de positie
+  u8g2.print(String(100/limiter) + "%");//display de waarde van het profile
 
   u8g2.sendBuffer();  
 }
